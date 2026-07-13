@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4ETF动量策略 - 调仓价格明细</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,'PingFang SC','SF Pro Display','Helvetica Neue',sans-serif; background:#F5F5F7; color:#1D1D1F; line-height:1.5; }
+.page { max-width:960px; margin:16px auto; padding:28px 32px; background:#FFF; border-radius:18px; box-shadow:0 0.5px 1px rgba(0,0,0,0.05),0 8px 24px rgba(0,0,0,0.04); border:0.5px solid #E8E8ED; }
+h1 { font-size:24px; font-weight:700; letter-spacing:-0.03em; }
+.subtitle { font-size:13px; color:#86868B; margin-top:6px; }
+.top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.final-card { padding:16px 20px; background:linear-gradient(135deg,#5E5CE6,#7B78F0); border-radius:14px; color:#FFF; text-align:right; }
+.final-card .label { font-size:11px; opacity:0.8; }
+.final-card .val { font-size:28px; font-weight:700; margin-top:2px; font-variant-numeric:tabular-nums; }
+
+.switch-card { margin-bottom:20px; padding:20px 22px; background:#FBFBFD; border-radius:14px; border:0.5px solid #E8E8ED; }
+.switch-header { display:flex; align-items:center; gap:12px; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #F0F0F0; }
+.switch-num { font-size:15px; font-weight:700; color:#1D1D1F; }
+.switch-dates { display:flex; gap:16px; font-size:12px; color:#86868B; }
+.switch-dates .exec-date { color:#1D1D1F; font-weight:600; }
+.badge { font-size:10px; padding:2px 8px; border-radius:6px; font-weight:600; }
+.badge.pt { background:#FFF3E0; color:#E65100; }
+.badge.mom { background:#E8F5E9; color:#2E7D32; }
+
+.price-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:12px; }
+.price-block { background:#FFF; border-radius:10px; padding:12px 14px; border:0.5px solid #F0F0F0; }
+.block-title { font-size:13px; font-weight:600; padding-left:10px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.action-icon { font-size:10px; padding:1px 6px; border-radius:4px; background:#F5F5F7; color:#86868B; }
+.code-tag { font-size:11px; color:#AEAEB2; font-family:monospace; }
+
+.price-table { width:100%; border-collapse:collapse; font-size:11px; }
+.price-table th { text-align:right; padding:4px 6px; font-size:9px; font-weight:600; color:#86868B; border-bottom:1px solid #F0F0F0; }
+.price-table th:first-child { text-align:left; }
+.price-table th small { font-weight:400; color:#C7C7CC; }
+.price-table td { padding:4px 6px; text-align:right; border-bottom:0.5px solid #F5F5F7; }
+.price-table td:first-child { text-align:left; }
+.row-label { font-size:10px; color:#86868B; font-weight:500; }
+.mono { font-variant-numeric:tabular-nums; font-family:'SF Mono',Menlo,monospace; }
+
+.return-line { margin-top:6px; font-size:11px; color:#86868B; }
+.return-line .formula { color:#C7C7CC; margin-left:4px; font-size:10px; }
+.pos { color:#9B1B12; font-weight:600; }
+.neg { color:#1A6B3B; font-weight:600; }
+
+.summary-bar { display:flex; gap:16px; padding:10px 14px; background:#FFF; border-radius:10px; margin-bottom:8px; border:0.5px solid #F0F0F0; }
+.summary-item { display:flex; flex-direction:column; }
+.summary-item .label { font-size:10px; color:#86868B; }
+.summary-item .value { font-size:15px; font-weight:700; margin-top:1px; }
+
+.pt-note { margin-top:8px; padding:8px 12px; background:#FFF3E0; border-radius:8px; font-size:11px; color:#E65100; font-weight:500; }
+
+.scores-section { margin-top:10px; }
+.scores-title { font-size:11px; color:#86868B; font-weight:600; margin-bottom:6px; }
+.scores-table { width:100%; border-collapse:collapse; font-size:11px; }
+.scores-table th { text-align:left; padding:4px 8px; font-size:9px; font-weight:600; color:#86868B; border-bottom:1px solid #F0F0F0; }
+.scores-table td { padding:4px 8px; border-bottom:0.5px solid #F5F5F7; }
+.scores-table tr.top td { background:#F0F7FF; font-weight:600; }
+
+.legend { display:flex; gap:20px; margin-top:16px; padding:12px 16px; background:#F5F5F7; border-radius:10px; font-size:11px; color:#86868B; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .page { margin:0; padding:14px 12px; border-radius:0; }
+  h1 { font-size:19px; }
+  .subtitle { font-size:12px; }
+  .top-bar { flex-direction:column; align-items:flex-start; gap:10px; }
+  .final-card { width:100%; text-align:left; padding:12px 14px; }
+  .final-card .val { font-size:22px; }
+  .switch-card { padding:14px 12px; }
+  .switch-header { flex-wrap:wrap; gap:8px; }
+  .switch-dates { flex-direction:column; gap:2px; }
+  .price-grid { grid-template-columns:1fr; }
+  .price-table, .scores-table { display:block; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; }
+  .summary-bar { flex-wrap:wrap; gap:10px; }
+  .summary-item .value { font-size:14px; }
+  .return-line { font-size:10px; }
+  .return-line .formula { font-size:9px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top-bar">
+    <div>
+      <h1>4ETF动量策略 — 调仓价格明细</h1>
+      <div class="subtitle">V4完全对齐版 | 全收益价格(4位) + 原始3位价格 | 收盘决策→次日开盘执行 | 共 11 次调仓</div>
+    </div>
+    <div class="final-card">
+      <div class="label">策略最终收益</div>
+      <div class="val">+24.87%</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#FF9500"></span> 黄金ETF (518880)</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#FF2D55"></span> 纳指100ETF (513100)</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#30D158"></span> 创业板ETF (159915)</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#007AFF"></span> 沪深300ETF (510300)</div>
+  </div>
+
+  
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #1</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-01-08</span>
+              <span class="decision-date">决策日 2026-01-07</span>
+            </div>
+            <span class="badge mom">动量切换</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-07</small></th><th>当日开盘<br><small>2026-01-08</small></th><th>当日收盘<br><small>2026-01-08</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">9.5192</td><td class="mono">9.5562</td><td class="mono">9.5122</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">9.518</td><td class="mono">9.555</td><td class="mono">9.511</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono pos">+0.389%</span>
+                <span class="formula">= 9.555 / 9.518</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #30D158">
+                <span class="action-icon">买入</span>
+                <span style="color:#30D158">创业板ETF</span>
+                <span class="code-tag">159915</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-07</small></th><th>当日开盘<br><small>2026-01-08</small></th><th>当日收盘<br><small>2026-01-08</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">3.3122</td><td class="mono">3.2922</td><td class="mono">3.2882</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">3.311</td><td class="mono">3.291</td><td class="mono">3.287</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono neg">-0.122%</span>
+                <span class="formula">= 3.287 / 3.291</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono pos">+0.267%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.0261</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+2.61%</span>
+            </div>
+          </div>
+
+          
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-01-07 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">0.621050 ★目标</td>
+                <td class="mono">+12.85%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">0.599409 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">0.344942 ★目标</td>
+                <td class="mono">+5.51%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">-0.024216 ★目标</td>
+                <td class="mono">+6.02%</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #2</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-01-14</span>
+              <span class="decision-date">决策日 2026-01-13</span>
+            </div>
+            <span class="badge pt">止盈</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #30D158">
+                <span class="action-icon">卖出</span>
+                <span style="color:#30D158">创业板ETF</span>
+                <span class="code-tag">159915</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-13</small></th><th>当日开盘<br><small>2026-01-14</small></th><th>当日收盘<br><small>2026-01-14</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">3.3072</td><td class="mono">3.3082</td><td class="mono">3.3332</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">3.306</td><td class="mono">3.307</td><td class="mono">3.332</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono pos">+0.030%</span>
+                <span class="formula">= 3.307 / 3.306</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">买入</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-13</small></th><th>当日开盘<br><small>2026-01-14</small></th><th>当日收盘<br><small>2026-01-14</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">9.7943</td><td class="mono">9.8723</td><td class="mono">9.9233</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">9.793</td><td class="mono">9.871</td><td class="mono">9.922</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono pos">+0.517%</span>
+                <span class="formula">= 9.922 / 9.871</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono pos">+0.547%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.0376</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+3.76%</span>
+            </div>
+          </div>
+
+          <div class="pt-note">⚠️ 止盈触发: 黄金ETF 60日涨幅 0.00% > 25%，切换至黄金ETF避险</div>
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-01-13 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">0.615390 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">0.579646 ★目标</td>
+                <td class="mono">+11.28%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">0.555936 ★目标</td>
+                <td class="mono">+5.52%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">-0.003812 ★目标</td>
+                <td class="mono">+3.01%</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #3</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-01-15</span>
+              <span class="decision-date">决策日 2026-01-14</span>
+            </div>
+            <span class="badge mom">动量切换</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-14</small></th><th>当日开盘<br><small>2026-01-15</small></th><th>当日收盘<br><small>2026-01-15</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">9.9233</td><td class="mono">9.8623</td><td class="mono">9.8683</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">9.922</td><td class="mono">9.861</td><td class="mono">9.867</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono neg">-0.615%</span>
+                <span class="formula">= 9.861 / 9.922</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #30D158">
+                <span class="action-icon">买入</span>
+                <span style="color:#30D158">创业板ETF</span>
+                <span class="code-tag">159915</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-14</small></th><th>当日开盘<br><small>2026-01-15</small></th><th>当日收盘<br><small>2026-01-15</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">3.3332</td><td class="mono">3.3072</td><td class="mono">3.3532</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">3.332</td><td class="mono">3.306</td><td class="mono">3.352</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono pos">+1.391%</span>
+                <span class="formula">= 3.352 / 3.306</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono pos">+0.768%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.0456</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+4.56%</span>
+            </div>
+          </div>
+
+          
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-01-14 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">0.712912 ★目标</td>
+                <td class="mono">+8.82%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">0.669274 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">0.640265 ★目标</td>
+                <td class="mono">+3.31%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">-0.000699 ★目标</td>
+                <td class="mono">+1.92%</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #4</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-01-22</span>
+              <span class="decision-date">决策日 2026-01-21</span>
+            </div>
+            <span class="badge pt">止盈</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #30D158">
+                <span class="action-icon">卖出</span>
+                <span style="color:#30D158">创业板ETF</span>
+                <span class="code-tag">159915</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-21</small></th><th>当日开盘<br><small>2026-01-22</small></th><th>当日收盘<br><small>2026-01-22</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">3.2822</td><td class="mono">3.2992</td><td class="mono">3.3162</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">3.281</td><td class="mono">3.298</td><td class="mono">3.315</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono pos">+0.518%</span>
+                <span class="formula">= 3.298 / 3.281</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">买入</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-01-21</small></th><th>当日开盘<br><small>2026-01-22</small></th><th>当日收盘<br><small>2026-01-22</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">10.3783</td><td class="mono">10.2913</td><td class="mono">10.3423</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">10.377</td><td class="mono">10.290</td><td class="mono">10.341</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono pos">+0.496%</span>
+                <span class="formula">= 10.341 / 10.290</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono pos">+1.016%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.0339</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+3.39%</span>
+            </div>
+          </div>
+
+          <div class="pt-note">⚠️ 止盈触发: 黄金ETF 60日涨幅 0.00% > 25%，切换至黄金ETF避险</div>
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-01-21 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">0.872236 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">0.854933 ★目标</td>
+                <td class="mono">+3.88%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">0.843616 ★目标</td>
+                <td class="mono">+2.37%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">-0.012489 ★目标</td>
+                <td class="mono">-4.39%</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #5</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-03-20</span>
+              <span class="decision-date">决策日 2026-03-19</span>
+            </div>
+            <span class="badge mom">动量切换</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-03-19</small></th><th>当日开盘<br><small>2026-03-20</small></th><th>当日收盘<br><small>2026-03-20</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">10.1273</td><td class="mono">9.9013</td><td class="mono">9.8973</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">10.126</td><td class="mono">9.900</td><td class="mono">9.896</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono neg">-2.232%</span>
+                <span class="formula">= 9.900 / 10.126</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #30D158">
+                <span class="action-icon">买入</span>
+                <span style="color:#30D158">创业板ETF</span>
+                <span class="code-tag">159915</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-03-19</small></th><th>当日开盘<br><small>2026-03-20</small></th><th>当日收盘<br><small>2026-03-20</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">3.3042</td><td class="mono">3.3382</td><td class="mono">3.3422</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">3.303</td><td class="mono">3.337</td><td class="mono">3.341</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono pos">+0.120%</span>
+                <span class="formula">= 3.341 / 3.337</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono neg">-2.115%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono neg">0.9910</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono neg">-0.90%</span>
+            </div>
+          </div>
+
+          
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-03-19 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">0.001126 ★目标</td>
+                <td class="mono">+7.94%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">0.000001 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">-0.032765 ★目标</td>
+                <td class="mono">+4.98%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">-0.274189 ★目标</td>
+                <td class="mono">-5.82%</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #6</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-05-14</span>
+              <span class="decision-date">决策日 2026-05-13</span>
+            </div>
+            <span class="badge pt">止盈</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #30D158">
+                <span class="action-icon">卖出</span>
+                <span style="color:#30D158">创业板ETF</span>
+                <span class="code-tag">159915</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-05-13</small></th><th>当日开盘<br><small>2026-05-14</small></th><th>当日收盘<br><small>2026-05-14</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">4.0494</td><td class="mono">4.0934</td><td class="mono">3.9624</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">4.048</td><td class="mono">4.092</td><td class="mono">3.961</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono pos">+1.087%</span>
+                <span class="formula">= 4.092 / 4.048</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">买入</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-05-13</small></th><th>当日开盘<br><small>2026-05-14</small></th><th>当日收盘<br><small>2026-05-14</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">9.8053</td><td class="mono">9.7813</td><td class="mono">9.7963</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">9.804</td><td class="mono">9.780</td><td class="mono">9.795</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono pos">+0.153%</span>
+                <span class="formula">= 9.795 / 9.780</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono pos">+1.242%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.2156</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+21.56%</span>
+            </div>
+          </div>
+
+          <div class="pt-note">⚠️ 止盈触发: 创业板ETF 60日涨幅 25.02% > 25%，切换至黄金ETF避险</div>
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-05-13 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">5.313672 ★目标</td>
+                <td class="mono">+25.02% ⚠止盈</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">5.026017 ★目标</td>
+                <td class="mono">+13.75%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">1.507961 ★目标</td>
+                <td class="mono">+7.22%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">-0.061521 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #7</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-05-15</span>
+              <span class="decision-date">决策日 2026-05-14</span>
+            </div>
+            <span class="badge mom">动量切换</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-05-14</small></th><th>当日开盘<br><small>2026-05-15</small></th><th>当日收盘<br><small>2026-05-15</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">9.7963</td><td class="mono">9.6462</td><td class="mono">9.5552</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">9.795</td><td class="mono">9.645</td><td class="mono">9.554</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono neg">-1.531%</span>
+                <span class="formula">= 9.645 / 9.795</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #FF2D55">
+                <span class="action-icon">买入</span>
+                <span style="color:#FF2D55">纳指100ETF</span>
+                <span class="code-tag">513100</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-05-14</small></th><th>当日开盘<br><small>2026-05-15</small></th><th>当日收盘<br><small>2026-05-15</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">2.1063</td><td class="mono">2.1083</td><td class="mono">2.1013</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">2.105</td><td class="mono">2.107</td><td class="mono">2.100</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono neg">-0.332%</span>
+                <span class="formula">= 2.100 / 2.107</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono neg">-1.859%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.1930</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+19.30%</span>
+            </div>
+          </div>
+
+          
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-05-14 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">4.838312 ★目标</td>
+                <td class="mono">+16.11%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">4.466495 ★目标</td>
+                <td class="mono">+22.67%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">1.321576 ★目标</td>
+                <td class="mono">+6.28%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">-0.096673 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #8</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-06-01</span>
+              <span class="decision-date">决策日 2026-05-29</span>
+            </div>
+            <span class="badge pt">止盈</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF2D55">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF2D55">纳指100ETF</span>
+                <span class="code-tag">513100</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-05-29</small></th><th>当日开盘<br><small>2026-06-01</small></th><th>当日收盘<br><small>2026-06-01</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">2.2744</td><td class="mono">2.2744</td><td class="mono">2.3664</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">2.273</td><td class="mono">2.273</td><td class="mono">2.365</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono pos">+0.000%</span>
+                <span class="formula">= 2.273 / 2.273</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">买入</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-05-29</small></th><th>当日开盘<br><small>2026-06-01</small></th><th>当日收盘<br><small>2026-06-01</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">9.3982</td><td class="mono">9.3992</td><td class="mono">9.3452</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">9.397</td><td class="mono">9.398</td><td class="mono">9.344</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono neg">-0.575%</span>
+                <span class="formula">= 9.344 / 9.398</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono neg">-0.575%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.2838</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+28.38%</span>
+            </div>
+          </div>
+
+          <div class="pt-note">⚠️ 止盈触发: 纳指100ETF 60日涨幅 27.27% > 25%，切换至黄金ETF避险</div>
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-05-29 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">3.733315 ★目标</td>
+                <td class="mono">+27.27% ⚠止盈</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">1.634641 ★目标</td>
+                <td class="mono">+26.46% ⚠止盈</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">0.106295 ★目标</td>
+                <td class="mono">+5.24%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">-0.370313 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #9</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-06-08</span>
+              <span class="decision-date">决策日 2026-06-05</span>
+            </div>
+            <span class="badge mom">动量切换</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-06-05</small></th><th>当日开盘<br><small>2026-06-08</small></th><th>当日收盘<br><small>2026-06-08</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">9.2532</td><td class="mono">9.0022</td><td class="mono">8.9541</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">9.252</td><td class="mono">9.001</td><td class="mono">8.953</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono neg">-2.713%</span>
+                <span class="formula">= 9.001 / 9.252</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #FF2D55">
+                <span class="action-icon">买入</span>
+                <span style="color:#FF2D55">纳指100ETF</span>
+                <span class="code-tag">513100</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-06-05</small></th><th>当日开盘<br><small>2026-06-08</small></th><th>当日收盘<br><small>2026-06-08</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">2.2063</td><td class="mono">2.1173</td><td class="mono">2.1153</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">2.205</td><td class="mono">2.116</td><td class="mono">2.114</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono neg">-0.095%</span>
+                <span class="formula">= 2.114 / 2.116</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono neg">-2.805%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.2355</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+23.55%</span>
+            </div>
+          </div>
+
+          
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-06-05 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">2.983083 ★目标</td>
+                <td class="mono">+23.32%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">0.841192 ★目标</td>
+                <td class="mono">+20.66%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">0.001787 ★目标</td>
+                <td class="mono">+3.42%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">-0.366445 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #10</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-06-16</span>
+              <span class="decision-date">决策日 2026-06-15</span>
+            </div>
+            <span class="badge pt">止盈</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF2D55">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF2D55">纳指100ETF</span>
+                <span class="code-tag">513100</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-06-15</small></th><th>当日开盘<br><small>2026-06-16</small></th><th>当日收盘<br><small>2026-06-16</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">2.2593</td><td class="mono">2.2654</td><td class="mono">2.2814</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">2.258</td><td class="mono">2.264</td><td class="mono">2.280</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono pos">+0.266%</span>
+                <span class="formula">= 2.264 / 2.258</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">买入</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-06-15</small></th><th>当日开盘<br><small>2026-06-16</small></th><th>当日收盘<br><small>2026-06-16</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">8.9291</td><td class="mono">8.9461</td><td class="mono">8.9501</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">8.928</td><td class="mono">8.945</td><td class="mono">8.949</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono pos">+0.045%</span>
+                <span class="formula">= 8.949 / 8.945</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono pos">+0.311%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.3238</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+32.38%</span>
+            </div>
+          </div>
+
+          <div class="pt-note">⚠️ 止盈触发: 纳指100ETF 60日涨幅 26.22% > 25%，切换至黄金ETF避险</div>
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-06-15 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">0.275688 ★目标</td>
+                <td class="mono">+26.22% ⚠止盈</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">-0.000353 ★目标</td>
+                <td class="mono">+21.18%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">-0.047184 ★目标</td>
+                <td class="mono">+5.51%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">-0.537953 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="switch-card">
+          <div class="switch-header">
+            <div class="switch-num">调仓 #11</div>
+            <div class="switch-dates">
+              <span class="exec-date">执行日 2026-07-07</span>
+              <span class="decision-date">决策日 2026-07-06</span>
+            </div>
+            <span class="badge mom">动量切换</span>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-block sell">
+              <div class="block-title" style="border-left:4px solid #FF9500">
+                <span class="action-icon">卖出</span>
+                <span style="color:#FF9500">黄金ETF</span>
+                <span class="code-tag">518880</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-07-06</small></th><th>当日开盘<br><small>2026-07-07</small></th><th>当日收盘<br><small>2026-07-07</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">8.6321</td><td class="mono">8.5911</td><td class="mono">8.5981</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">8.631</td><td class="mono">8.590</td><td class="mono">8.597</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                过夜收益: <span class="mono neg">-0.475%</span>
+                <span class="formula">= 8.590 / 8.631</span>
+              </div>
+            </div>
+
+            <div class="price-block buy">
+              <div class="block-title" style="border-left:4px solid #30D158">
+                <span class="action-icon">买入</span>
+                <span style="color:#30D158">创业板ETF</span>
+                <span class="code-tag">159915</span>
+              </div>
+              <table class="price-table">
+                <thead>
+                  <tr><th></th><th>前日收盘<br><small>2026-07-06</small></th><th>当日开盘<br><small>2026-07-07</small></th><th>当日收盘<br><small>2026-07-07</small></th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="row-label">全收益</td><td class="mono">3.9714</td><td class="mono">3.9314</td><td class="mono">3.9334</td></tr>
+                  <tr><td class="row-label">原始3位</td><td class="mono">3.970</td><td class="mono">3.930</td><td class="mono">3.932</td></tr>
+                </tbody>
+              </table>
+              <div class="return-line">
+                日内收益: <span class="mono pos">+0.051%</span>
+                <span class="formula">= 3.932 / 3.930</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <span class="label">调仓日总收益</span>
+              <span class="value mono neg">-0.424%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计净值</span>
+              <span class="value mono pos">1.2713</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">累计收益</span>
+              <span class="value mono pos">+27.13%</span>
+            </div>
+          </div>
+
+          
+
+          <div class="scores-section">
+            <div class="scores-title">决策日动量得分 (2026-07-06 收盘)</div>
+            <table class="scores-table">
+              <thead>
+                <tr><th>ETF</th><th>代码</th><th>动量得分</th><th>60日涨幅</th></tr>
+              </thead>
+              <tbody>
+                
+              <tr class='top'>
+                <td style="color:#30D158">创业板ETF</td>
+                <td class="mono">159915</td>
+                <td class="mono">0.187404 ★目标</td>
+                <td class="mono">+18.68%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#007AFF">沪深300ETF</td>
+                <td class="mono">510300</td>
+                <td class="mono">0.027535 ★目标</td>
+                <td class="mono">+5.98%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF2D55">纳指100ETF</td>
+                <td class="mono">513100</td>
+                <td class="mono">-0.071506 ★目标</td>
+                <td class="mono">+18.44%</td>
+              </tr>
+              <tr class='top'>
+                <td style="color:#FF9500">黄金ETF</td>
+                <td class="mono">518880</td>
+                <td class="mono">-0.463165 ★目标</td>
+                <td class="mono">黄金豁免</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+</div>
+</body>
+</html>
