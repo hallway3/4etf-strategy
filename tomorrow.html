@@ -93,6 +93,29 @@ h1 { font-size:24px; font-weight:700; letter-spacing:-0.03em; }
 .comp-table td { padding:6px 10px; border-bottom:0.5px solid #F5F5F7; }
 
 .note { font-size:11px; color:#86868B; margin-top:12px; line-height:1.6; }
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .page { margin:0; padding:14px 12px; border-radius:0; }
+  h1 { font-size:19px; }
+  .subtitle { font-size:12px; }
+  .reco-banner { flex-direction:column; align-items:flex-start; gap:8px; padding:16px 14px; }
+  .reco-icon { font-size:32px; }
+  .reco-title { font-size:17px; }
+  .etf-grid { grid-template-columns:repeat(2,1fr); }
+  .etf-price { font-size:18px; }
+  .summary { grid-template-columns:repeat(3,1fr); gap:6px; }
+  .card { padding:10px 8px; }
+  .card-val { font-size:17px; }
+  .card-label { font-size:9px; }
+  .chart-wrap { height:260px; }
+  .timeline { padding:8px 0; }
+  .tl-item { min-width:60px; }
+  .tl-name { font-size:9px; }
+  .tl-date { font-size:8px; }
+  .pt-alert, .switch-alert, .hold-alert { padding:10px 12px; }
+  .note { font-size:11px; }
+}
 </style>
 </head>
 <body>
